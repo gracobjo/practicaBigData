@@ -97,14 +97,15 @@ La metodología **KDD** estructura el descubrimiento de conocimiento en bases de
 proyectoFinBigData/
 ├── README.md                 # Este archivo (KDD + arquitectura)
 ├── requirements.txt          # Dependencias Python
+├── streamlit_app.py          # Dashboard web (alertas, transacciones, métricas)
 ├── docker-compose.yml        # MongoDB, Kafka, Zookeeper (opcional)
 ├── .gitignore
 ├── api/
 │   └── main.py               # FastAPI + Swagger, endpoints de alertas
 ├── scripts/
-│   ├── spark_detection.py    # Spark: transformación, RF, AUC-ROC, guarda pipeline para Kafka
+│   ├── spark_detection.py    # Spark: transformación, RF, AUC-ROC, guarda pipeline (usa PySpark 3.x; LEGACY parser para timestamps)
 │   ├── spark_streaming_kafka.py  # Spark Streaming: Kafka → pipeline → alertas
-│   ├── populate_mongodb.py   # Poblado de MongoDB con transacciones sintéticas
+│   ├── populate_mongodb.py   # Poblado de MongoDB con transacciones sintéticas (por defecto 10k, puerto 27018)
 │   ├── export_mongodb_to_json.py  # Export MongoDB → JSON para Spark
 │   ├── kafka_producer_mongodb.py  # Productor: MongoDB → Kafka (topic transactions)
 │   ├── run_spark_detection.sh     # Entrenar modelo (spark-submit, detecta SPARK_HOME)
@@ -124,7 +125,7 @@ proyectoFinBigData/
 ### Requisitos
 
 - Python 3.9+
-- Spark 3.x (PySpark)
+- Spark 3.x (PySpark). En `requirements.txt` se fija **PySpark 3.x** (`pyspark>=3.4.0,<4.0.0`): con PySpark 4.x puede aparecer `TypeError: 'JavaPackage' object is not callable` al ejecutar `python scripts/spark_detection.py`.
 - MongoDB
 - (Opcional) Kafka, NiFi, HDFS, Airflow para arquitectura completa
 
@@ -138,9 +139,13 @@ pip install -r requirements.txt
 
 ### Poblar MongoDB (datos sintéticos)
 
+El script inserta por defecto **10 000** transacciones y se conecta a **127.0.0.1:27018** (MongoDB en Docker según `docker-compose`), de modo que los datos se ven en Mongo Express.
+
 ```bash
 python scripts/populate_mongodb.py
 ```
+
+Opcional: `NUM_TRANSACTIONS=20000` para más registros; `MONGO_URI=mongodb://...` o `MONGO_PORT=...` si MongoDB está en otro host/puerto.
 
 ### Entrenar modelo y evaluar (Spark)
 
@@ -158,7 +163,7 @@ spark-submit scripts/spark_detection.py
 ```
 
 **Opción B – Solo PySpark en venv (modo local)**  
-En algunos entornos puede aparecer `TypeError: 'JavaPackage' object is not callable`. Si ocurre, usa la Opción A (spark-submit).
+Con PySpark 3.x (fijado en `requirements.txt`) se puede ejecutar directamente con `python`. El script usa `spark.sql.legacy.timeParserPolicy=LEGACY` para parsear correctamente los timestamps ISO con zona horaria exportados desde MongoDB.
 
 ```bash
 pip install -r requirements.txt
@@ -176,6 +181,17 @@ uvicorn api.main:app --reload --host 0.0.0.0 --port 8000
 
 Documentación interactiva: **http://localhost:8000/docs**
 
+### Dashboard Streamlit (alertas y transacciones)
+
+Interfaz web para ver alertas de fraude, transacciones y métricas del modelo (AUC-ROC, F1, etc.).
+
+```bash
+pip install -r requirements.txt
+streamlit run streamlit_app.py
+```
+
+Abre **http://localhost:8501**. Secciones: Resumen, Alertas de fraude, Transacciones (muestra desde JSON), Métricas del modelo. Las métricas se rellenan si has ejecutado antes `run_spark_detection.sh` o `spark_detection.py` (guardan `data/metrics.json`).
+
 ### Docker (MongoDB + Kafka + Mongo Express)
 
 ```bash
@@ -184,7 +200,7 @@ docker-compose up -d
 
 Para **ver los datos de MongoDB en una página web** tienes dos opciones:
 
-1. **Mongo Express** (interfaz de administración): con los contenedores arriba, levanta también `mongo-express` y abre en el navegador **http://nodo1:8081**. Usuario: `admin`, contraseña: `admin`. Ahí puedes explorar la base `fraud_detection` y la colección `transactions`.
+1. **Mongo Express** (interfaz de administración): con los contenedores arriba, levanta también `mongo-express` y abre en el navegador **http://localhost:8081** (o http://nodo1:8081 en cluster). Usuario: `admin`, contraseña: `admin`. Ahí puedes explorar la base `fraud_detection` y la colección `transactions`. Los datos insertados con `python scripts/populate_mongodb.py` (puerto por defecto 27018) son los que verás en Mongo Express.
    ```bash
    docker-compose up -d mongodb mongo-express
    ```
@@ -282,6 +298,7 @@ Resumen de lo que se usa en este proyecto y dónde está (nodo1, salvo indicaci�
 |------------|------------------|-----------|--------|
 | **Python** | Sistema + venv en `venv/` | - | 3.12; venv para API y scripts |
 | **MongoDB** | Docker, imagen `mongo:4.4` | 27018 (host) | Sin AVX; colección `fraud_detection.transactions` |
+| **Mongo Express** | Docker, imagen `mongo-express` | 8081 (host) | Interfaz web para MongoDB; usuario/contraseña: `admin` |
 | **Kafka** | Docker, Confluent 7.5 | 9092, 29092 | Opcional para streaming |
 | **Zookeeper** | Docker, Confluent 7.5 | 2181 | Requerido por Kafka |
 | **Hadoop HDFS** | Instalación en nodo1 | 9000 (NameNode) | NameNode en nodo1; DataNode(s) según cluster |

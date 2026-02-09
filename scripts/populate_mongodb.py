@@ -29,11 +29,12 @@ except ImportError:
 MONGO_URI = os.getenv("MONGO_URI")
 if not MONGO_URI:
     MONGO_HOST = os.getenv("MONGO_HOST", "127.0.0.1")
-    MONGO_PORT = os.getenv("MONGO_PORT", "27017")
+    # 27018 = puerto del host cuando MongoDB corre en Docker (docker-compose: 27018:27017)
+    MONGO_PORT = os.getenv("MONGO_PORT", "27018")
     MONGO_URI = f"mongodb://{MONGO_HOST}:{MONGO_PORT}"
 DB_NAME = os.getenv("MONGO_DB", "fraud_detection")
 COLLECTION_NAME = "transactions"
-NUM_TRANSACTIONS = int(os.getenv("NUM_TRANSACTIONS", "5000"))
+NUM_TRANSACTIONS = int(os.getenv("NUM_TRANSACTIONS", "10000"))
 FRAUD_RATIO = float(os.getenv("FRAUD_RATIO", "0.05"))  # ~5% fraude
 # Timeout suficiente para conexión y para insert_many (5s a veces poco en Docker/red)
 CONNECT_TIMEOUT_MS = int(os.getenv("MONGO_CONNECT_TIMEOUT_MS", "30000"))

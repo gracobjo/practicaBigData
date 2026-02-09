@@ -50,10 +50,11 @@ def get_spark_session() -> SparkSession:
     """Crea sesión Spark (local o cluster)."""
     builder = (
         SparkSession.builder.appName("FraudDetectionKDD")
-        # En local: evita fallos de bind (driver y UI)
         .config("spark.driver.bindAddress", "127.0.0.1")
         .config("spark.driver.host", "127.0.0.1")
         .config("spark.ui.enabled", "false")
+        # Timestamps ISO con zona (+00:00) del export MongoDB; parser nuevo de Spark 3 falla sin LEGACY
+        .config("spark.sql.legacy.timeParserPolicy", "LEGACY")
     )
     if not os.getenv("SPARK_MASTER"):
         builder = builder.master("local[*]")
@@ -208,9 +209,22 @@ def main() -> None:
     from pyspark.ml.evaluation import MulticlassClassificationEvaluator
     acc_eval = MulticlassClassificationEvaluator(labelCol="label", predictionCol="prediction", metricName="accuracy")
     f1_eval = MulticlassClassificationEvaluator(labelCol="label", predictionCol="prediction", metricName="f1")
-    print(f"Accuracy: {acc_eval.evaluate(predictions):.4f}")
-    print(f"F1:       {f1_eval.evaluate(predictions):.4f}")
+    acc = acc_eval.evaluate(predictions)
+    f1 = f1_eval.evaluate(predictions)
+    print(f"Accuracy: {acc:.4f}")
+    print(f"F1:       {f1:.4f}")
     print("=" * 60)
+
+    # Guardar métricas para el dashboard Streamlit (data/metrics.json)
+    try:
+        import json
+        base = os.path.dirname(OUTPUT_ALERTS_PATH)
+        if not base.startswith("hdfs:"):
+            metrics_path = os.path.join(base, "metrics.json")
+            with open(metrics_path, "w", encoding="utf-8") as f:
+                json.dump({"auc_roc": float(auc), "auc_pr": float(aupr), "accuracy": float(acc), "f1": float(f1)}, f, indent=2)
+    except Exception:
+        pass
 
     # Guardar alertas (predicciones positivas) para consumo de la API
     alerts = predictions.filter(F.col("prediction") == 1.0).select(
