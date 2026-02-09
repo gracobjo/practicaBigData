@@ -1,0 +1,108 @@
+# ===========================================
+# Python
+# ===========================================
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual environments
+venv/
+env/
+.env
+.venv/
+ENV/
+
+# ===========================================
+# Big Data / Hadoop / Spark
+# ===========================================
+*.log
+logs/
+spark-warehouse/
+metastore_db/
+derby.log
+*.parquet
+*.orc
+data/alerts_cache/
+_checkpoint/
+checkpoints/
+data/checkpoint_kafka/
+data/checkpoint_kafka_parquet/
+
+# HDFS local (si se usa pseudo-distribuido)
+/tmp/hadoop-*/
+/tmp/hsperfdata_*/
+
+# NiFi
+nifi-*/content_repository/
+nifi-*/flowfile_repository/
+nifi-*/provenance_repository/
+nifi-*/state/
+
+# Kafka
+kafka-logs/
+zookeeper-data/
+
+# ===========================================
+# Airflow
+# ===========================================
+airflow.db
+airflow.cfg
+logs/
+*.pid
+airflow_home/
+airflow_venv/
+
+# ===========================================
+# IDE / Cursor
+# ===========================================
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# ===========================================
+# Jupyter / Notebooks
+# ===========================================
+.ipynb_checkpoints/
+*.ipynb_checkpoints
+
+# ===========================================
+# Modelos y artefactos ML
+# ===========================================
+*.pkl
+*.joblib
+*.model
+models/*.model
+!models/.gitkeep
+
+# ===========================================
+# Secrets y config local
+# ===========================================
+.env.local
+.env.*.local
+*.pem
+secrets/
+
+# ===========================================
+# OS
+# ===========================================
+.DS_Store
+Thumbs.db

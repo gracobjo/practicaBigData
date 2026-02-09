@@ -1,0 +1,28 @@
+# ===========================================
+# API y servidor
+# ===========================================
+fastapi>=0.104.0
+uvicorn[standard]>=0.24.0
+
+# ===========================================
+# Fuente de datos (MongoDB)
+# ===========================================
+pymongo>=4.5.0
+
+# ===========================================
+# Kafka (productor MongoDB → Kafka)
+# ===========================================
+kafka-python>=2.0.2
+
+# ===========================================
+# Spark (PySpark) - para entrenar en local o cluster
+# ===========================================
+pyspark>=3.4.0
+# Necesario con Python 3.12+ cuando spark-submit usa este venv (distutils eliminado de la stdlib)
+setuptools>=65.0.0
+
+# ===========================================
+# Utilidades para API (lectura Parquet sin Spark)
+# ===========================================
+pandas>=2.0.0
+pyarrow>=14.0.0
